@@ -40,6 +40,11 @@ int fatorBalanceamento(No *raiz) {
 No *criarNo() {
     No *novo = malloc(sizeof(No));
 
+    if (novo == NULL) {
+        printf("Erro ao alocar memoria.\n");
+        exit(1);
+    }
+
     printf("Nome: ");
     scanf(" %[^\n]", novo->nome);
 
@@ -69,6 +74,19 @@ No *criarNo() {
     novo->dir = NULL;
 
     return novo;
+}
+
+void imprimirAluno(No *aluno) {
+    printf("\nNome: %s\n", aluno->nome);
+    printf("Matricula: %d\n", aluno->matricula);
+    printf("Curso: %s\n", aluno->curso);
+    printf("Nivel: %s\n", aluno->nivel);
+    printf("Status: %s\n", aluno->status);
+    printf("E-Mail: %s\n", aluno->email);
+    printf("IRA: %.2f\n", aluno->ira);
+    printf("MP: %.2f\n", aluno->mp);
+    printf("Altura: %d\n", aluno->altura);
+    printf("Fator de Balanceamento: %d\n", fatorBalanceamento(aluno));
 }
 
 No *rotEsq(No *raiz) {
@@ -145,20 +163,95 @@ No *inserirNo(No *raiz, No *novo) {
     return raiz;
 }
 
+No *menorNo(No *raiz) {
+    No *atual = raiz;
+
+    while (atual->esq != NULL) {
+        atual = atual->esq;
+    }
+
+    return atual;
+}
+
+No *removerNo(No *raiz, int matricula) {
+    if (raiz == NULL) {
+        printf("Aluno nao encontrado.\n");
+        return NULL;
+    }
+
+    if (matricula < raiz->matricula) {
+        raiz->esq = removerNo(raiz->esq, matricula);
+    } else if (matricula > raiz->matricula) {
+        raiz->dir = removerNo(raiz->dir, matricula);
+    } else {
+        if (raiz->esq == NULL && raiz->dir == NULL) {
+            free(raiz);
+            return NULL;
+        } else if (raiz->esq == NULL) {
+            No *temp = raiz->dir;
+            free(raiz);
+            return temp;
+        } else if (raiz->dir == NULL) {
+            No *temp = raiz->esq;
+            free(raiz);
+            return temp;
+        } else {
+            No *temp = menorNo(raiz->dir);
+
+            raiz->matricula = temp->matricula;
+            strcpy(raiz->nome, temp->nome);
+            strcpy(raiz->curso, temp->curso);
+            strcpy(raiz->nivel, temp->nivel);
+            strcpy(raiz->status, temp->status);
+            strcpy(raiz->email, temp->email);
+            raiz->ira = temp->ira;
+            raiz->mp = temp->mp;
+
+            raiz->dir = removerNo(raiz->dir, temp->matricula);
+        }
+    }
+
+    raiz->altura = 1 + maior(altura(raiz->esq), altura(raiz->dir));
+
+    int fb = fatorBalanceamento(raiz);
+
+    if (fb > 1 && fatorBalanceamento(raiz->dir) >= 0) {
+        return rotEsq(raiz);
+    }
+
+    if (fb > 1 && fatorBalanceamento(raiz->dir) < 0) {
+        return rotDirEsq(raiz);
+    }
+
+    if (fb < -1 && fatorBalanceamento(raiz->esq) <= 0) {
+        return rotDir(raiz);
+    }
+
+    if (fb < -1 && fatorBalanceamento(raiz->esq) > 0) {
+        return rotEsqDir(raiz);
+    }
+
+    return raiz;
+}
+
+No *buscarAluno(No *raiz, int matricula) {
+    if (raiz == NULL) {
+        return NULL;
+    }
+
+    if (matricula < raiz->matricula) {
+        return buscarAluno(raiz->esq, matricula);
+    } else if (matricula > raiz->matricula) {
+        return buscarAluno(raiz->dir, matricula);
+    }
+
+    return raiz;
+}
+
 void emOrdem(No *raiz) {
     if (raiz != NULL) {
         emOrdem(raiz->esq);
-
-        printf("\nNome: %s\n", raiz->nome);
-        printf("Matricula: %d\n", raiz->matricula);
-        printf("Curso: %s\n", raiz->curso);
-        printf("Nivel: %s\n", raiz->nivel);
-        printf("Status: %s\n", raiz->status);
-        printf("E-Mail: %s\n", raiz->email);
-        printf("IRA: %.2f\n", raiz->ira);
-        printf("MP: %.2f\n", raiz->mp);
-        printf("\nAltura: %d e Fator de Balanceamento: %d\n", raiz->altura, fatorBalanceamento(raiz));
-
+        imprimirAluno(raiz);
         emOrdem(raiz->dir);
     }
 }
@@ -177,12 +270,14 @@ void menu() {
     printf("2 - Exibir alunos em ordem\n");
     printf("3 - Remover aluno\n");
     printf("4 - Buscar aluno por matricula\n");
+    printf("5 - Mostrar altura e fator da raiz\n");
     printf("0 - Sair\n");
     printf("Digite a opcao: ");
 }
 
 int main() {
     int opcao;
+    int matricula;
     No *raiz = NULL;
     No *novo = NULL;
 
@@ -198,6 +293,36 @@ int main() {
 
             case 2:
                 emOrdem(raiz);
+                break;
+
+            case 3:
+                printf("Digite a matricula: ");
+                scanf("%d", &matricula);
+                raiz = removerNo(raiz, matricula);
+                break;
+
+            case 4: {
+                printf("Digite a matricula: ");
+                scanf("%d", &matricula);
+
+                No *aluno = buscarAluno(raiz, matricula);
+
+                if (aluno != NULL) {
+                    imprimirAluno(aluno);
+                } else {
+                    printf("Aluno nao encontrado.\n");
+                }
+
+                break;
+            }
+
+            case 5:
+                if (raiz != NULL) {
+                    printf("Altura da raiz: %d\n", raiz->altura);
+                    printf("Fator de balanceamento da raiz: %d\n", fatorBalanceamento(raiz));
+                } else {
+                    printf("Arvore vazia.\n");
+                }
                 break;
 
             case 0:
